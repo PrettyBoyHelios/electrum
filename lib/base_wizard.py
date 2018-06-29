@@ -31,7 +31,7 @@ from functools import partial
 from . import bitcoin
 from . import keystore
 from .keystore import bip44_derivation, purpose48_derivation
-from .wallet import Imported_Wallet, Standard_Wallet, Multisig_Wallet, wallet_types, Wallet
+from .wallet import Imported_Wallet, Standard_Wallet, Multisig_Wallet, wallet_types, Wallet, coin_tickers
 from .storage import STO_EV_USER_PW, STO_EV_XPUB_PW, get_derivation_used_for_hw_device_encryption
 from .i18n import _
 from .util import UserCancelled, InvalidPassword
@@ -47,6 +47,8 @@ class GoBack(Exception): pass
 
 
 class BaseWizard(object):
+
+    base_coin = ''
 
     def __init__(self, config, plugins, storage):
         super(BaseWizard, self).__init__()
@@ -94,13 +96,32 @@ class BaseWizard(object):
         name = os.path.basename(self.storage.path)
         title = _("Create") + ' ' + name
         message = '\n'.join([
+            _("What cryptocurrency you want to use?")
+        ])
+        coins = [
+            ('btc', _("Bitcoin")),
+            ('bch', _("Bitcoin Cash")),
+            ('polis', _("Polis")),
+            ('dash', _("Dash")),
+            ('colx', _("ColossusXT")),
+            ('xmcc', _("Monoeci")),
+            ('gbx', _("GoByte")),
+            ('ltc', _("Litecoin")),
+        ]
+        choices = [pair for pair in coins if pair[0] in coin_tickers]
+        self.choice_dialog(title=title, message=message, choices=choices, run_next=self.on_coin_select)
+
+
+    def wallet_type(self):
+        name = os.path.basename(self.storage.path)
+        title = _("Create") + ' ' + name
+        message = '\n'.join([
             _("What kind of wallet do you want to create?")
         ])
         wallet_kinds = [
-            ('standard',  _("Standard wallet")),
+            ('standard', _("Standard wallet")),
             ('2fa', _("Wallet with two-factor authentication")),
-            ('multisig',  _("Multi-signature wallet")),
-            ('imported',  _("Import Bitcoin addresses or private keys")),
+            ('multisig', _("Multi-signature wallet")),
         ]
         choices = [pair for pair in wallet_kinds if pair[0] in wallet_types]
         self.choice_dialog(title=title, message=message, choices=choices, run_next=self.on_wallet_type)
@@ -129,6 +150,29 @@ class BaseWizard(object):
             action = 'import_addresses_or_keys'
         self.run(action)
 
+
+    def on_coin_select(self, choice):
+        global base_coin
+        self.coin_ticker = choice
+        if choice == 'polis':
+            base_coin = 'polis'
+        if choice == 'btc':
+            base_coin = 'btc'
+        if choice == 'bch':
+            base_coin = 'bch'
+        if choice == 'dash':
+            base_coin = 'dash'
+        if choice == 'colx':
+            base_coin = 'colx'
+        if choice == 'xmcc':
+            base_coin = 'xmcc'
+        if choice == 'gbx':
+            base_coin = 'gbx'
+        if choice == 'ltc':
+            base_coin = 'ltc'
+        self.storage.put('base_coin', base_coin)
+        self.wallet_type()
+
     def choose_multisig(self):
         def on_multisig(m, n):
             self.multisig_type = "%dof%d"%(m, n)
@@ -143,30 +187,30 @@ class BaseWizard(object):
         title = _('Add cosigner') + ' (%d of %d)'%(i+1, self.n) if self.wallet_type=='multisig' else _('Keystore')
         if self.wallet_type =='standard' or i==0:
             message = _('Do you want to create a new seed, or to restore a wallet using an existing seed?')
-            choices = [
-                ('choose_seed_type', _('Create a new seed')),
-                ('restore_from_seed', _('I already have a seed')),
-                ('restore_from_key', _('Use a master key')),
-            ]
+            if base_coin == 'btc':
+                choices = [
+                    ('choose_seed_type', _('Create a new seed')),
+                    ('restore_from_seed', _('I already have a seed')),
+                    ('restore_from_key', _('Use a master key')),
+                ]
+            else:
+                choices = [
+                    ('create_standard_seed', _('Create a new seed')),
+                    ('restore_from_seed', _('I already have a seed')),
+                    ('restore_from_key', _('Use a master key')),
+                ]
             if not self.is_kivy:
                 choices.append(('choose_hw_device',  _('Use a hardware device')))
-        else:
-            message = _('Add a cosigner to your multi-sig wallet')
-            choices = [
-                ('restore_from_key', _('Enter cosigner key')),
-                ('restore_from_seed', _('Enter cosigner seed')),
-            ]
+            else:
+                message = _('Add a cosigner to your multi-sig wallet')
+                choices = [
+                    ('restore_from_key', _('Enter cosigner key')),
+                    ('restore_from_seed', _('Enter cosigner seed')),
+                ]
             if not self.is_kivy:
                 choices.append(('choose_hw_device',  _('Cosign with hardware device')))
 
         self.choice_dialog(title=title, message=message, choices=choices, run_next=self.run)
-
-    def import_addresses_or_keys(self):
-        v = lambda x: keystore.is_address_list(x) or keystore.is_private_key_list(x)
-        title = _("Import Bitcoin Addresses")
-        message = _("Enter a list of Bitcoin addresses (this will create a watching-only wallet), or a list of private keys.")
-        self.add_xpub_dialog(title=title, message=message, run_next=self.on_import,
-                             is_valid=v, allow_multi=True, show_wif_help=True)
 
     def on_import(self, text):
         # create a temporary wallet and exploit that modifications
@@ -308,17 +352,27 @@ class BaseWizard(object):
             # There is no general standard for HD multisig.
             # For legacy, this is partially compatible with BIP45; assumes index=0
             # For segwit, a custom path is used, as there is no standard at all.
-            choices = [
-                ('standard',   'legacy multisig (p2sh)',            "m/45'/0"),
-                ('p2wsh-p2sh', 'p2sh-segwit multisig (p2wsh-p2sh)', purpose48_derivation(0, xtype='p2wsh-p2sh')),
-                ('p2wsh',      'native segwit multisig (p2wsh)',    purpose48_derivation(0, xtype='p2wsh')),
-            ]
+            if base_coin == 'btc':
+                choices = [
+                    ('standard',   'legacy multisig (p2sh)',            "m/45'/0"),
+                    ('p2wsh-p2sh', 'p2sh-segwit multisig (p2wsh-p2sh)', purpose48_derivation(0, xtype='p2wsh-p2sh')),
+                    ('p2wsh',      'native segwit multisig (p2wsh)',    purpose48_derivation(0, xtype='p2wsh')),
+                ]
+            else:
+                choices = [
+                    ('standard',   'legacy multisig (p2sh)',            "m/45'/0"),
+                ]
         else:
-            choices = [
-                ('standard',    'legacy (p2pkh)',            bip44_derivation(0, bip43_purpose=44)),
-                ('p2wpkh-p2sh', 'p2sh-segwit (p2wpkh-p2sh)', bip44_derivation(0, bip43_purpose=49)),
-                ('p2wpkh',      'native segwit (p2wpkh)',    bip44_derivation(0, bip43_purpose=84)),
-            ]
+            if base_coin == 'btc':
+                choices = [
+                    ('standard',    'legacy (p2pkh)',            bip44_derivation(0, bip43_purpose=44)),
+                    ('p2wpkh-p2sh', 'p2sh-segwit (p2wpkh-p2sh)', bip44_derivation(0, bip43_purpose=49)),
+                    ('p2wpkh',      'native segwit (p2wpkh)',    bip44_derivation(0, bip43_purpose=84)),
+                ]
+            else:
+                choices = [
+                    ('standard',    'legacy (p2pkh)',            bip44_derivation(0, bip43_purpose=44)),
+                ]
         while True:
             try:
                 self.choice_and_line_dialog(

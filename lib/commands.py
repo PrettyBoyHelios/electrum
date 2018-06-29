@@ -332,7 +332,7 @@ class Commands:
         """Return the balance of any address. Note: This is a walletless
         server query, results are not checked by SPV.
         """
-        path = 'lib/checkpoints.json'
+        path = 'lib/checkpoints-polis.json'
         out = self.network.export_checkpoints(path)
         return out
 

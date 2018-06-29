@@ -25,8 +25,6 @@
 
 import os
 import json
-
-
 def read_json(filename, default):
     path = os.path.join(os.path.dirname(__file__), filename)
     try:
@@ -46,8 +44,8 @@ class BitcoinMainnet:
     SEGWIT_HRP = "bc"
     GENESIS = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
     DEFAULT_PORTS = {'t': '50001', 's': '50002'}
-    DEFAULT_SERVERS = read_json('servers.json', {})
-    CHECKPOINTS = read_json('checkpoints.json', [])
+    DEFAULT_SERVERS = read_json('servers-btc.json', {})
+    CHECKPOINTS = read_json('checkpoints-btc.json', [])
 
     XPRV_HEADERS = {
         'standard':    0x0488ade4,  # xprv
@@ -73,8 +71,8 @@ class PolisMainnet:
     ADDRTYPE_P2SH = 0x38
     GENESIS = "000009701eb781a8113b1af1d814e2f060f6408a2c990db291bc5108a1345c1e"
     DEFAULT_PORTS = {'s': '50002'}
-    DEFAULT_SERVERS = read_json('servers.json', {})
-    CHECKPOINTS = read_json('checkpoints.json', [])
+    DEFAULT_SERVERS = read_json('servers-polis.json', {})
+    CHECKPOINTS = read_json('checkpoints-polis.json', [])
 
     XPRV_HEADERS = {
         'standard':    0x03E25D7E,  # xprv

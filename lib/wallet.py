@@ -2333,6 +2333,7 @@ class Multisig_Wallet(Deterministic_Wallet):
 
 
 wallet_types = ['standard', 'multisig', 'imported']
+coin_tickers = ['polis','ltc','bch','btc','dash','colx','gbx','xmcc']
 
 def register_wallet_type(category):
     wallet_types.append(category)
