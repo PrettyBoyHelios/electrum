@@ -24,7 +24,7 @@ import os
 import threading
 
 from . import util
-from .bitcoin import Hash, hash_encode, int_to_hex, rev_hex
+from .bitcoin import PoWHash, hash_encode, int_to_hex, rev_hex
 from . import constants
 from .util import bfh, bh2u
 
@@ -65,7 +65,7 @@ def hash_header(header):
         return '0' * 64
     if header.get('prev_block_hash') is None:
         header['prev_block_hash'] = '00'*32
-    return hash_encode(Hash(bfh(serialize_header(header))))
+    return hash_encode(PoWHash(bfh(serialize_header(header))))
 
 
 blockchains = {}

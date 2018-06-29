@@ -328,6 +328,15 @@ class Commands:
         return out
 
     @command('n')
+    def export_checkpoints(self):
+        """Return the balance of any address. Note: This is a walletless
+        server query, results are not checked by SPV.
+        """
+        path = 'lib/checkpoints.json'
+        out = self.network.export_checkpoints(path)
+        return out
+
+    @command('n')
     def getmerkle(self, txid, height):
         """Get Merkle branch of a transaction included in a block. Electrum
         uses this to verify transactions (Simple Payment Verification)."""

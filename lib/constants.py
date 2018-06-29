@@ -65,6 +65,24 @@ class BitcoinMainnet:
     }
     BIP44_COIN_TYPE = 0
 
+class PolisMainnet:
+
+    TESTNET = False
+    WIF_PREFIX = 0x3C
+    ADDRTYPE_P2PKH = 0x37
+    ADDRTYPE_P2SH = 0x38
+    GENESIS = "000009701eb781a8113b1af1d814e2f060f6408a2c990db291bc5108a1345c1e"
+    DEFAULT_PORTS = {'s': '50002'}
+    DEFAULT_SERVERS = read_json('servers.json', {})
+    CHECKPOINTS = read_json('checkpoints.json', [])
+
+    XPRV_HEADERS = {
+        'standard':    0x03E25D7E,  # xprv
+    }
+    XPUB_HEADERS = {
+        'standard':    0x03E25945,  # xpub
+    }
+    BIP44_COIN_TYPE = 0
 
 class BitcoinTestnet:
 
@@ -112,22 +130,9 @@ class BitcoinSimnet(BitcoinTestnet):
 
 
 # don't import net directly, import the module instead (so that net is singleton)
-net = BitcoinMainnet
+net = PolisMainnet
 
-def set_simnet():
-    global net
-    net = BitcoinSimnet
 
 def set_mainnet():
     global net
-    net = BitcoinMainnet
-
-
-def set_testnet():
-    global net
-    net = BitcoinTestnet
-
-
-def set_regtest():
-    global net
-    net = BitcoinRegtest
+    net = PolisMainnet

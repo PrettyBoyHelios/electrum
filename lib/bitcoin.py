@@ -25,6 +25,8 @@
 
 import hashlib
 import hmac
+import x11_hash
+
 
 from .util import bfh, bh2u, BitcoinException, print_error, assert_bytes, to_bytes, inv_dict
 from . import version
@@ -36,14 +38,14 @@ from .crypto import Hash, sha256, hash_160, hmac_oneshot
 
 ################################## transactions
 
-COINBASE_MATURITY = 100
+COINBASE_MATURITY = 10 # todo dinamic for other coins
 COIN = 100000000
-TOTAL_COIN_SUPPLY_LIMIT_IN_BTC = 21000000
+TOTAL_COIN_SUPPLY_LIMIT_IN_BTC = 25000000 # todo dinamic for other coins
 
 # supported types of transaction outputs
-TYPE_ADDRESS = 0
-TYPE_PUBKEY  = 1
-TYPE_SCRIPT  = 2
+TYPE_ADDRESS = 0 # todo dinamic for other coins
+TYPE_PUBKEY  = 1 # todo dinamic for other coins
+TYPE_SCRIPT  = 2 # todo dinamic for other coins
 
 
 def rev_hex(s):
@@ -65,6 +67,9 @@ def int_to_hex(i: int, length: int=1) -> str:
     s = hex(i)[2:].rstrip('L')
     s = "0"*(2*length - len(s)) + s
     return rev_hex(s)
+
+def PoWHash(x):
+    return x11_hash.getPoWHash(to_bytes(x))
 
 def script_num_to_hex(i: int) -> str:
     """See CScriptNum in Bitcoin Core.
@@ -266,33 +271,6 @@ def script_to_address(script, *, net=None):
     assert t == TYPE_ADDRESS
     return addr
 
-def address_to_script(addr, *, net=None):
-    if net is None:
-        net = constants.net
-    witver, witprog = segwit_addr.decode(net.SEGWIT_HRP, addr)
-    if witprog is not None:
-        if not (0 <= witver <= 16):
-            raise BitcoinException('impossible witness version: {}'.format(witver))
-        OP_n = witver + 0x50 if witver > 0 else 0
-        script = bh2u(bytes([OP_n]))
-        script += push_script(bh2u(bytes(witprog)))
-        return script
-    addrtype, hash_160 = b58_address_to_hash160(addr)
-    if addrtype == net.ADDRTYPE_P2PKH:
-        script = '76a9'                                      # op_dup, op_hash_160
-        script += push_script(bh2u(hash_160))
-        script += '88ac'                                     # op_equalverify, op_checksig
-    elif addrtype == net.ADDRTYPE_P2SH:
-        script = 'a9'                                        # op_hash_160
-        script += push_script(bh2u(hash_160))
-        script += '87'                                       # op_equal
-    else:
-        raise BitcoinException('unknown address type: {}'.format(addrtype))
-    return script
-
-def address_to_scripthash(addr):
-    script = address_to_script(addr)
-    return script_to_scripthash(script)
 
 def script_to_scripthash(script):
     h = sha256(bytes.fromhex(script))[0:32]

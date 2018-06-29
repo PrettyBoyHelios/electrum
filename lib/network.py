@@ -1163,20 +1163,6 @@ class Network(util.DaemonThread):
             callback(x2)
         return cb2
 
-    def subscribe_to_addresses(self, addresses, callback):
-        hash2address = {
-            bitcoin.address_to_scripthash(address): address
-            for address in addresses}
-        self.h2addr.update(hash2address)
-        msgs = [
-            ('blockchain.scripthash.subscribe', [x])
-            for x in hash2address.keys()]
-        self.send(msgs, self.map_scripthash_to_address(callback))
-
-    def request_address_history(self, address, callback):
-        h = bitcoin.address_to_scripthash(address)
-        self.h2addr.update({h: address})
-        self.send([('blockchain.scripthash.get_history', [h])], self.map_scripthash_to_address(callback))
 
     # NOTE this method handles exceptions and a special edge case, counter to
     # what the other ElectrumX methods do. This is unexpected.

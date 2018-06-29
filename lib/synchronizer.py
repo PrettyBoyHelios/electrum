@@ -75,7 +75,6 @@ class Synchronizer(ThreadJob):
     def subscribe_to_addresses(self, addresses):
         if addresses:
             self.requested_addrs |= addresses
-            self.network.subscribe_to_addresses(addresses, self.on_address_status)
 
     def get_status(self, h):
         if not h:
