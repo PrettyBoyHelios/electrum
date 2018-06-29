@@ -29,8 +29,8 @@ from . import constants
 from .bitcoin import *
 
 MAX_TARGET = 0x00000FFFFF000000000000000000000000000000000000000000000000000000
-POW_TARGET_SPACING = int(2.5 * 60)  # Dash: 2.5 minutes
-POW_DGW3_HEIGHT = 68589
+POW_TARGET_SPACING = int(2 * 60)  # Dash: 2.5 minutes
+POW_DGW3_HEIGHT = 170000
 DGW_PAST_BLOCKS = 24
 
 def serialize_header(res):
