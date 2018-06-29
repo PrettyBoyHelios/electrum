@@ -24,16 +24,14 @@ import os
 import threading
 
 from . import util
-from .bitcoin import PoWHash, hash_encode, int_to_hex, rev_hex
+from . import bitcoin
 from . import constants
-from .util import bfh, bh2u
+from .bitcoin import *
 
-MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
-
-
-class MissingHeader(Exception):
-    pass
-
+MAX_TARGET = 0x00000FFFFF000000000000000000000000000000000000000000000000000000
+POW_TARGET_SPACING = int(2.5 * 60)  # Dash: 2.5 minutes
+POW_DGW3_HEIGHT = 68589
+DGW_PAST_BLOCKS = 24
 
 def serialize_header(res):
     s = int_to_hex(res.get('version'), 4) \
@@ -73,7 +71,8 @@ blockchains = {}
 def read_blockchains(config):
     blockchains[0] = Blockchain(config, 0, None)
     fdir = os.path.join(util.get_headers_dir(config), 'forks')
-    util.make_dir(fdir)
+    if not os.path.exists(fdir):
+        os.mkdir(fdir)
     l = filter(lambda x: x.startswith('fork_'), os.listdir(fdir))
     l = sorted(l, key = lambda x: int(x.split('_')[1]))
     for filename in l:
@@ -163,6 +162,9 @@ class Blockchain(util.PrintError):
             raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if constants.net.TESTNET:
             return
+        height = header.get('block_height')
+        if height < POW_DGW3_HEIGHT:
+            return
         bits = self.target_to_bits(target)
         if bits != header.get('bits'):
             raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
@@ -172,11 +174,19 @@ class Blockchain(util.PrintError):
     def verify_chunk(self, index, data):
         num = len(data) // 80
         prev_hash = self.get_hash(index * 2016 - 1)
-        target = self.get_target(index-1)
+        chunk_headers = {'empty': True}
         for i in range(num):
             raw_header = data[i*80:(i+1) * 80]
-            header = deserialize_header(raw_header, index*2016 + i)
+            height = index * 2016 + i
+            header = deserialize_header(raw_header, height)
+            target = self.get_target(height, chunk_headers)
             self.verify_header(header, prev_hash, target)
+
+            chunk_headers[height] = header
+            if i == 0:
+                chunk_headers['min_height'] = height
+                chunk_headers['empty'] = False
+            chunk_headers['max_height'] = height
             prev_hash = hash_header(header)
 
     def path(self):
@@ -204,10 +214,8 @@ class Blockchain(util.PrintError):
         parent_id = self.parent_id
         checkpoint = self.checkpoint
         parent = self.parent()
-        self.assert_headers_file_available(self.path())
         with open(self.path(), 'rb') as f:
             my_data = f.read()
-        self.assert_headers_file_available(parent.path())
         with open(parent.path(), 'rb') as f:
             f.seek((checkpoint - parent.checkpoint)*80)
             parent_data = f.read(parent_branch_size*80)
@@ -230,18 +238,9 @@ class Blockchain(util.PrintError):
         blockchains[self.checkpoint] = self
         blockchains[parent.checkpoint] = parent
 
-    def assert_headers_file_available(self, path):
-        if os.path.exists(path):
-            return
-        elif not os.path.exists(util.get_headers_dir(self.config)):
-            raise FileNotFoundError('Electrum headers_dir does not exist. Was it deleted while running?')
-        else:
-            raise FileNotFoundError('Cannot find headers file but headers_dir is there. Should be at {}'.format(path))
-
     def write(self, data, offset, truncate=True):
         filename = self.path()
         with self.lock:
-            self.assert_headers_file_available(filename)
             with open(filename, 'rb+') as f:
                 if truncate and offset != self._size*80:
                     f.seek(offset)
@@ -270,56 +269,96 @@ class Blockchain(util.PrintError):
             return
         delta = height - self.checkpoint
         name = self.path()
-        self.assert_headers_file_available(name)
-        with open(name, 'rb') as f:
-            f.seek(delta * 80)
-            h = f.read(80)
-            if len(h) < 80:
-                raise Exception('Expected to read a full header. This was only {} bytes'.format(len(h)))
+        if os.path.exists(name):
+            with open(name, 'rb') as f:
+                f.seek(delta * 80)
+                h = f.read(80)
+                if len(h) < 80:
+                    raise Exception('Expected to read a full header. This was only {} bytes'.format(len(h)))
+        elif not os.path.exists(util.get_headers_dir(self.config)):
+            raise Exception('Electrum datadir does not exist. Was it deleted while running?')
+        else:
+            raise Exception('Cannot find headers file but datadir is there. Should be at {}'.format(name))
         if h == bytes([0])*80:
             return None
         return deserialize_header(h, height)
 
     def get_hash(self, height):
+        len_checkpoints = len(self.checkpoints)
         if height == -1:
             return '0000000000000000000000000000000000000000000000000000000000000000'
         elif height == 0:
             return constants.net.GENESIS
-        elif height < len(self.checkpoints) * 2016:
+        elif height < len_checkpoints * 2016 - DGW_PAST_BLOCKS:
             assert (height+1) % 2016 == 0, height
             index = height // 2016
-            h, t = self.checkpoints[index]
+            if index < len_checkpoints - 1:
+                h, t = self.checkpoints[index]
+            else:
+                h, t, extra_headers = self.checkpoints[index]
             return h
         else:
             return hash_header(self.read_header(height))
 
-    def get_target(self, index):
-        # compute target from chunk x, used in chunk x+1
-        if constants.net.TESTNET:
-            return 0
-        if index == -1:
+    def get_target(self, height, chunk_headers=None):
+        if chunk_headers is None:
+            chunk_headers = {'empty': True}
+
+        if height >= POW_DGW3_HEIGHT:
+            return self.get_target_dgw_v3(height, chunk_headers)
+        else:
             return MAX_TARGET
-        if index < len(self.checkpoints):
-            h, t = self.checkpoints[index]
-            return t
-        # new target
-        first = self.read_header(index * 2016)
-        last = self.read_header(index * 2016 + 2015)
-        if not first or not last:
-            raise MissingHeader()
-        bits = last.get('bits')
-        target = self.bits_to_target(bits)
-        nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 14 * 24 * 60 * 60
-        nActualTimespan = max(nActualTimespan, nTargetTimespan // 4)
-        nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
-        new_target = min(MAX_TARGET, (target * nActualTimespan) // nTargetTimespan)
+
+    def get_target_dgw_v3(self, height, chunk_headers):
+        if chunk_headers['empty']:
+            chunk_empty = True
+        else:
+            chunk_empty = False
+            min_height = chunk_headers['min_height']
+            max_height = chunk_headers['max_height']
+
+        count_blocks = 1
+        while count_blocks <= DGW_PAST_BLOCKS:
+            reading_h = height - count_blocks
+            reading_header = self.read_header(reading_h)
+            if not reading_header and not chunk_empty \
+                and min_height <= reading_h <= max_height:
+                    reading_header = chunk_headers[reading_h]
+            if not reading_header:
+                return MAX_TARGET
+            reading_time = reading_header.get('timestamp')
+            reading_target = self.bits_to_target(reading_header.get('bits'))
+
+            if count_blocks == 1:
+                past_target_avg = reading_target
+                last_time = reading_time
+            past_target_avg = \
+                (past_target_avg * count_blocks + reading_target) // \
+                    (count_blocks + 1)
+
+            count_blocks +=1
+
+        new_target = past_target_avg
+        actual_timespan = last_time - reading_time
+        target_timespan = DGW_PAST_BLOCKS * POW_TARGET_SPACING
+
+        if actual_timespan < target_timespan // 3:
+            actual_timespan = target_timespan // 3
+        if actual_timespan > target_timespan * 3:
+            actual_timespan = target_timespan * 3
+
+        new_target *= actual_timespan
+        new_target //= target_timespan
+
+        if new_target > MAX_TARGET:
+            return MAX_TARGET
+
         return new_target
 
     def bits_to_target(self, bits):
         bitsN = (bits >> 24) & 0xff
-        if not (bitsN >= 0x03 and bitsN <= 0x1d):
-            raise Exception("First part of bits should be in [0x03, 0x1d]")
+        if not (bitsN >= 0x03 and bitsN <= 0x1e):
+            raise Exception("First part of bits should be in [0x03, 0x1e]")
         bitsBase = bits & 0xffffff
         if not (bitsBase >= 0x8000 and bitsBase <= 0x7fffff):
             raise Exception("Second part of bits should be in [0x8000, 0x7fffff]")
@@ -350,10 +389,7 @@ class Blockchain(util.PrintError):
             return False
         if prev_hash != header.get('prev_block_hash'):
             return False
-        try:
-            target = self.get_target(height // 2016 - 1)
-        except MissingHeader:
-            return False
+        target = self.get_target(height)
         try:
             self.verify_header(header, prev_hash, target)
         except BaseException as e:
@@ -376,7 +412,25 @@ class Blockchain(util.PrintError):
         cp = []
         n = self.height() // 2016
         for index in range(n):
-            h = self.get_hash((index+1) * 2016 -1)
-            target = self.get_target(index)
-            cp.append((h, target))
+            height = (index + 1) * 2016 - 1
+            h = self.get_hash(height)
+            target = self.get_target(height)
+            if len(h.strip('0')) == 0:
+                raise Exception('%s file has not enough data.' % self.path())
+            if index < n - 1:
+                cp.append((h, target))
+            else:
+                dgw3_headers = []
+                if os.path.exists(self.path()):
+                    with open(self.path(), 'rb') as f:
+                        lower_header = height - DGW_PAST_BLOCKS
+                        for height in range(height, lower_header-1, -1):
+                            f.seek(height*80)
+                            hd = f.read(80)
+                            if len(hd) < 80:
+                                raise Exception(
+                                    'Expected to read a full header.'
+                                    ' This was only {} bytes'.format(len(hd)))
+                            dgw3_headers.append((height, bh2u(hd)))
+                cp.append((h, target, dgw3_headers))
         return cp
