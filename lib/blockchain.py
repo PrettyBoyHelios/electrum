@@ -22,12 +22,14 @@
 # SOFTWARE.
 import os
 import threading
+import json
 
 from . import util
 from . import bitcoin
 from . import constants
 from .bitcoin import *
 from .storage import *
+
 
 MAX_TARGET = 0x00000FFFFF000000000000000000000000000000000000000000000000000000
 POW_TARGET_SPACING = int(2 * 60)  # Dash: 2.5 minutes
@@ -69,8 +71,8 @@ def hash_header(header):
 
 blockchains = {}
 
-def read_blockchains(config, storage):
-    blockchains[0] = Blockchain(config, 0, None, storage)
+def read_blockchains(config):
+    blockchains[0] = Blockchain(config, 0, None)
     fdir = os.path.join(util.get_headers_dir(config), 'forks')
     if not os.path.exists(fdir):
         os.mkdir(fdir)
@@ -107,15 +109,11 @@ class Blockchain(util.PrintError):
     Manages blockchain headers and their verification
     """
 
-    def __init__(self, config, checkpoint, parent_id, storage):
+    def __init__(self, config, checkpoint, parent_id):
         self.config = config
         self.catch_up = None # interface catching up
         self.checkpoint = checkpoint
-        self.storage = storage
-        if self.storage.get('base_coin') == 'btc':
-            self.checkpoints = constants.BitcoinMainnet.CHECKPOINTS
-        if self.storage.get('base_coin') == 'polis':
-            self.checkpoints = constants.PolisMainnet.CHECKPOINTS
+        self.checkpoints = constants.net.CHECKPOINTS
         self.parent_id = parent_id
         self.lock = threading.Lock()
         with self.lock:

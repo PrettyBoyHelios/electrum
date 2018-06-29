@@ -36,6 +36,7 @@ from .storage import STO_EV_USER_PW, STO_EV_XPUB_PW, get_derivation_used_for_hw_
 from .i18n import _
 from .util import UserCancelled, InvalidPassword
 
+
 # hardware device setup purpose
 HWD_SETUP_NEW_WALLET, HWD_SETUP_DECRYPT_WALLET = range(0, 2)
 
@@ -47,12 +48,12 @@ class GoBack(Exception): pass
 
 
 class BaseWizard(object):
-
     base_coin = ''
 
-    def __init__(self, config, plugins, storage):
+    def __init__(self, config, plugins, storage, daemon):
         super(BaseWizard, self).__init__()
         self.config = config
+        self.daemon = daemon
         self.plugins = plugins
         self.storage = storage
         self.wallet = None
@@ -137,7 +138,9 @@ class BaseWizard(object):
         self.storage.put('use_trustedcoin', True)
         self.plugin = self.plugins.load_plugin('trustedcoin')
 
+
     def on_wallet_type(self, choice):
+
         self.wallet_type = choice
         if choice == 'standard':
             action = 'choose_keystore'
@@ -156,6 +159,7 @@ class BaseWizard(object):
         self.coin_ticker = choice
         if choice == 'polis':
             base_coin = 'polis'
+
         if choice == 'btc':
             base_coin = 'btc'
         if choice == 'bch':
@@ -170,7 +174,6 @@ class BaseWizard(object):
             base_coin = 'gbx'
         if choice == 'ltc':
             base_coin = 'ltc'
-        self.storage.put('base_coin', base_coin)
         self.wallet_type()
 
     def choose_multisig(self):
@@ -533,6 +536,7 @@ class BaseWizard(object):
                 k.update_password(None, password)
         if self.wallet_type == 'standard':
             self.storage.put('seed_type', self.seed_type)
+            self.storage.put('base_coin', base_coin)
             keys = self.keystores[0].dump()
             self.storage.put('keystore', keys)
             self.wallet = Standard_Wallet(self.storage)
@@ -543,12 +547,14 @@ class BaseWizard(object):
             self.storage.write()
             self.wallet = Multisig_Wallet(self.storage)
             self.run('create_addresses')
+            self.storage.put('base_coin', base_coin)
         elif self.wallet_type == 'imported':
             if len(self.keystores) > 0:
                 keys = self.keystores[0].dump()
                 self.storage.put('keystore', keys)
             self.wallet = Imported_Wallet(self.storage)
             self.wallet.storage.write()
+            self.storage.put('base_coin', base_coin)
             self.terminate()
 
     def show_xpub_and_add_cosigners(self, xpub):
@@ -609,3 +615,5 @@ class BaseWizard(object):
             self.terminate()
         msg = _("Electrum is generating your addresses, please wait...")
         self.waiting_dialog(task, msg)
+
+

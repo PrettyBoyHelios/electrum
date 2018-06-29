@@ -216,7 +216,7 @@ class ElectrumGui:
                 return
         if not wallet:
             storage = WalletStorage(path, manual_upgrades=True)
-            wizard = InstallWizard(self.config, self.app, self.plugins, storage)
+            wizard = InstallWizard(self.config, self.app, self.plugins, storage, self.daemon)
             try:
                 wallet = wizard.run_and_get_wallet(self.daemon.get_wallet)
             except UserCancelled:
@@ -230,6 +230,15 @@ class ElectrumGui:
                 d.exec_()
                 return
             finally:
+                try:
+                    self.init_network()
+                except UserCancelled:
+                    return
+                except GoBack:
+                    return
+                except BaseException as e:
+                    traceback.print_exc(file=sys.stdout)
+                    return
                 wizard.terminate()
             if not wallet:
                 return
@@ -267,24 +276,9 @@ class ElectrumGui:
             self.config.save_last_wallet(window.wallet)
         run_hook('on_close_window', window)
 
-    def init_network(self):
-        # Show network dialog if config does not exist
-        if self.daemon.network:
-            if self.config.get('auto_connect') is None:
-                wizard = InstallWizard(self.config, self.app, self.plugins, None)
-                wizard.init_network(self.daemon.network)
-                wizard.terminate()
+
 
     def main(self):
-        try:
-            self.init_network()
-        except UserCancelled:
-            return
-        except GoBack:
-            return
-        except BaseException as e:
-            traceback.print_exc(file=sys.stdout)
-            return
         self.timer.start()
         self.config.open_last_wallet()
         path = self.config.get_wallet_path()
@@ -310,4 +304,13 @@ class ElectrumGui:
 
         # main loop
         self.app.exec_()
+        self.app.exec_()
         # on some platforms the exec_ call may not return, so use clean_up()
+
+    def init_network(self):
+        # Show network dialog if config does not exist
+        if self.daemon.network:
+            if self.config.get('auto_connect') is None:
+                wizard = InstallWizard(self.config, self.app, self.plugins, None, self.daemon)
+                wizard.init_network(self.daemon.network)
+                wizard.terminate()

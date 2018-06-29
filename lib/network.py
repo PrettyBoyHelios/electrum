@@ -30,8 +30,8 @@ import select
 from collections import defaultdict
 import threading
 import socket
-import json
 import sys
+import json
 
 import dns
 import dns.resolver
@@ -45,11 +45,11 @@ from .interface import Connection, Interface
 from . import blockchain
 from .version import ELECTRUM_VERSION, PROTOCOL_VERSION
 from .i18n import _
-from .storage import *
 
 
 NODES_RETRY_INTERVAL = 60
 SERVER_RETRY_INTERVAL = 10
+
 
 
 def parse_servers(result):
@@ -96,14 +96,9 @@ def filter_protocol(hostmap, protocol = 's'):
             eligible.append(serialize_server(host, port, protocol))
     return eligible
 
-def pick_random_server(base_coin, hostmap = None, protocol = 's', exclude_set = set(), ):
+def pick_random_server( hostmap = None, protocol = 's', exclude_set = set(), ):
     if hostmap is None:
-        if base_coin == 'btc':
-            hostmap = constants.BitcoinMainnet.DEFAULT_SERVERS
-        if base_coin == 'polis':
-            hostmap = constants.PolisMainnet.DEFAULT_SERVERS
-        else:
-            hostmap = constants.BitcoinMainnet.DEFAULT_SERVERS
+            hostmap = constants.net.DEFAULT_SERVERS
     eligible = list(set(filter_protocol(hostmap, protocol)) - exclude_set)
     return random.choice(eligible) if eligible else None
 
@@ -171,16 +166,16 @@ class Network(util.DaemonThread):
           is_connected(), set_parameters(), stop()
     """
 
-    def __init__(self, storage, config=None ):
+    def __init__(self,base_coin, config=None ):
         if config is None:
             config = {}  # Do not use mutables as default values!
         util.DaemonThread.__init__(self)
-        self.storage = storage
         self.config = SimpleConfig(config) if isinstance(config, dict) else config
         self.num_server = 10 if not self.config.get('oneserver') else 0
-        self.blockchains = blockchain.read_blockchains(self.config, storage)  # note: needs self.blockchains_lock
+        self.blockchains = blockchain.read_blockchains(self.config)  # note: needs self.blockchains_lock
         self.print_error("blockchains", self.blockchains.keys())
         self.blockchain_index = config.get('blockchain_index', 0)
+
         if self.blockchain_index not in self.blockchains.keys():
             self.blockchain_index = 0
         # Server for addresses and transactions
@@ -193,7 +188,7 @@ class Network(util.DaemonThread):
                 self.print_error('Warning: failed to parse server-string; falling back to random.')
                 self.default_server = None
         if not self.default_server:
-            self.default_server = pick_random_server(self.storage.get('base_coin'))
+            self.default_server = pick_random_server()
 
         # locks: if you need to take multiple ones, acquire them in the order they are defined here!
         self.interface_lock = threading.RLock()            # <- re-entrant
@@ -217,7 +212,6 @@ class Network(util.DaemonThread):
         self.sub_cache = {}                     # note: needs self.interface_lock
         # callbacks set by the GUI
         self.callbacks = defaultdict(list)      # note: needs self.callback_lock
-
         dir_path = os.path.join( self.config.path, 'certs')
         util.make_dir(dir_path)
 
@@ -401,11 +395,7 @@ class Network(util.DaemonThread):
 
     @with_recent_servers_lock
     def get_servers(self):
-        out = constants.PolisMainnet.DEFAULT_SERVERS
-        if self.storage.get('base_coin') == 'btc':
-            out = constants.BitcoinMainnet.DEFAULT_SERVERS
-        if self.storage.get('base_coin') == 'polis':
-            out = constants.PolisMainnet.DEFAULT_SERVERS
+        out = constants.net.DEFAULT_SERVERS
         if self.irc_servers:
             out.update(filter_version(self.irc_servers.copy()))
         else:
@@ -430,13 +420,7 @@ class Network(util.DaemonThread):
     def start_random_interface(self):
         with self.interface_lock:
             exclude_set = self.disconnected_servers.union(set(self.interfaces))
-        server = pick_random_server('btc', self.get_servers(), self.protocol, exclude_set)
-        if self.storage.get('base_coin') == 'btc':
-            server = pick_random_server('btc', self.get_servers(), self.protocol, exclude_set)
-        if self.storage.get('base_coin') == 'polis':
-            server = pick_random_server('polis', self.get_servers(), self.protocol, exclude_set)
-        if server:
-            self.start_interface(server)
+        server = pick_random_server(self.get_servers(), self.protocol, exclude_set)
 
     def start_interfaces(self):
         self.start_interface(self.default_server)
@@ -507,7 +491,7 @@ class Network(util.DaemonThread):
     def set_parameters(self, host, port, protocol, proxy, auto_connect):
         proxy_str = serialize_proxy(proxy)
         server = serialize_server(host, port, protocol)
-        # sanitize parameters
+        # sanitize parametersf
         try:
             deserialize_server(serialize_server(host, port, protocol))
             if proxy:

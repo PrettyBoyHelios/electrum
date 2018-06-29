@@ -396,7 +396,6 @@ if __name__ == '__main__':
     # todo: defer this to gui
     config = SimpleConfig(config_options)
     cmdname = config.get('cmd')
-
     if config.get('testnet'):
         constants.set_testnet()
     elif config.get('regtest'):

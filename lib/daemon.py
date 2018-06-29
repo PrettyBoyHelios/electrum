@@ -301,6 +301,7 @@ class Daemon(DaemonThread):
         remove_lockfile(get_lockfile(self.config))
         DaemonThread.stop(self)
 
+
     def init_gui(self, config, plugins):
         gui_name = config.get('gui', 'qt')
         if gui_name in ['lite', 'classic']:

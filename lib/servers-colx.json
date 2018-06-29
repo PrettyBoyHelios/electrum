@@ -1,0 +1,7 @@
+{
+    "electrum1-colx.polispay.org": {
+        "pruning": "-",
+        "s": "50002",
+        "version": "1.2"
+    }
+}

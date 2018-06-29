@@ -97,8 +97,8 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
     accept_signal = pyqtSignal()
     synchronized_signal = pyqtSignal(str)
 
-    def __init__(self, config, app, plugins, storage):
-        BaseWizard.__init__(self, config, plugins, storage)
+    def __init__(self, config, app, plugins, storage, daemon):
+        BaseWizard.__init__(self, config, plugins, storage, daemon)
         QDialog.__init__(self, None)
         self.setWindowTitle('Electrum  -  ' + _('Install Wizard'))
         self.app = app
@@ -582,6 +582,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         vbox.addLayout(layout.layout())
         self.exec_layout(vbox, _('Master Public Key'))
         return None
+
 
     def init_network(self, network):
         message = _("Electrum communicates with remote servers to get "
