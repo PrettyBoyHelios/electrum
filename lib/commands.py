@@ -842,9 +842,15 @@ def add_global_options(parser):
     group.add_argument("-D", "--dir", dest="electrum_path", help="electrum directory")
     group.add_argument("-P", "--portable", action="store_true", dest="portable", default=False, help="Use local 'electrum_data' directory")
     group.add_argument("-w", "--wallet", dest="wallet_path", help="wallet path")
-    group.add_argument("--testnet", action="store_true", dest="testnet", default=False, help="Use Testnet")
-    group.add_argument("--regtest", action="store_true", dest="regtest", default=False, help="Use Regtest")
-    group.add_argument("--simnet", action="store_true", dest="simnet", default=False, help="Use Simnet")
+    group.add_argument("--polis", action="store_true", dest="polis", default=False, help="Create Polis Wallet")
+    group.add_argument("--btc", action="store_true", dest="btc", default=False, help="Create Bitcoin Wallet")
+    group.add_argument("--bch", action="store_true", dest="bch", default=False, help="Create Bitcoin Cash Wallet")
+    group.add_argument("--dash", action="store_true", dest="dash", default=False, help="Create Dash Wallet")
+    group.add_argument("--colx", action="store_true", dest="colx", default=False, help="Create ColossusXT Wallet")
+    group.add_argument("--gbx", action="store_true", dest="gbx", default=False, help="Create GoByte Wallet")
+    group.add_argument("--xmcc", action="store_true", dest="xmcc", default=False, help="Create Monoeci Wallet")
+    group.add_argument("--ltc", action="store_true", dest="ltc", default=False, help="Create Litecoin Wallet")
+
 
 def get_parser():
     # create main parser

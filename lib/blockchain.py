@@ -30,10 +30,7 @@ from . import constants
 from .bitcoin import *
 from .storage import *
 
-
 MAX_TARGET = 0x00000FFFFF000000000000000000000000000000000000000000000000000000
-POW_TARGET_SPACING = int(2 * 60)  # Dash: 2.5 minutes
-POW_DGW3_HEIGHT = 551
 DGW_PAST_BLOCKS = 24
 
 def serialize_header(res):
@@ -61,13 +58,33 @@ def deserialize_header(s, height):
     h['block_height'] = height
     return h
 
-def hash_header(header):
+def hash_headerX11(header):
     if header is None:
         return '0' * 64
     if header.get('prev_block_hash') is None:
         header['prev_block_hash'] = '00'*32
     return hash_encode(PoWHash(bfh(serialize_header(header))))
 
+def hash_header(header):
+    if header is None:
+        return '0' * 64
+    if header.get('prev_block_hash') is None:
+        header['prev_block_hash'] = '00'*32
+    return hash_encode(Hash(bfh(serialize_header(header))))
+
+def hash_headerQuark(header):
+    if header is None:
+        return '0' * 64
+    if header.get('prev_block_hash') is None:
+        header['prev_block_hash'] = '00'*32
+    return hash_encode(QuarkHash(bfh(serialize_header(header))))
+
+def hash_headerNeo(header):
+    if header is None:
+        return '0' * 64
+    if header.get('prev_block_hash') is None:
+        header['prev_block_hash'] = '00'*32
+    return hash_encode(NeoHash(bfh(serialize_header(header))))
 
 blockchains = {}
 
@@ -114,10 +131,13 @@ class Blockchain(util.PrintError):
         self.catch_up = None # interface catching up
         self.checkpoint = checkpoint
         self.checkpoints = constants.net.CHECKPOINTS
+        self.powspacing = constants.net.POW_TARGET_SPACING
+        self.dgwheight = constants.net.POW_DGW3_HEIGHT
         self.parent_id = parent_id
         self.lock = threading.Lock()
         with self.lock:
             self.update_size()
+
 
     def parent(self):
         return blockchains[self.parent_id]
@@ -137,7 +157,15 @@ class Blockchain(util.PrintError):
         return self.get_hash(self.get_checkpoint()).lstrip('00')[0:10]
 
     def check_header(self, header):
-        header_hash = hash_header(header)
+        # For Polis, Dash and Monoeci
+        header_hash = hash_headerX11(header)
+        # For BTC, LTC and BCH
+        # header_hash = hash_header(header)
+        # For COLX
+        # header_hash = hash_headerQuark(header)
+        # For GBX
+        # header_hash = hash_headerNeo(header)
+
         height = header.get('block_height')
         return header_hash == self.get_hash(height)
 
@@ -166,7 +194,7 @@ class Blockchain(util.PrintError):
         if constants.net.TESTNET:
             return
         height = header.get('block_height')
-        if height < POW_DGW3_HEIGHT:
+        if height < self.dgwheight:
             return
         bits = self.target_to_bits(target)
         if bits != header.get('bits'):
@@ -194,6 +222,7 @@ class Blockchain(util.PrintError):
 
     def path(self):
         d = util.get_headers_dir(self.config)
+        print(self.config.electrum_path())
         filename = 'blockchain_headers' if self.parent_id is None else os.path.join('forks', 'fork_%d_%d'%(self.parent_id, self.checkpoint))
         return os.path.join(d, filename)
 
@@ -307,7 +336,7 @@ class Blockchain(util.PrintError):
         if chunk_headers is None:
             chunk_headers = {'empty': True}
 
-        if height >= POW_DGW3_HEIGHT:
+        if height >= self.dgwheight:
             return self.get_target_dgw_v3(height, chunk_headers)
         else:
             return MAX_TARGET
@@ -343,7 +372,7 @@ class Blockchain(util.PrintError):
 
         new_target = past_target_avg
         actual_timespan = last_time - reading_time
-        target_timespan = DGW_PAST_BLOCKS * POW_TARGET_SPACING
+        target_timespan = DGW_PAST_BLOCKS * constants.net.POW_TARGET_SPACING
 
         if actual_timespan < target_timespan // 3:
             actual_timespan = target_timespan // 3

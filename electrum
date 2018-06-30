@@ -396,12 +396,22 @@ if __name__ == '__main__':
     # todo: defer this to gui
     config = SimpleConfig(config_options)
     cmdname = config.get('cmd')
-    if config.get('testnet'):
-        constants.set_testnet()
-    elif config.get('regtest'):
-        constants.set_regtest()
-    elif config.get('simnet'):
-        constants.set_simnet()
+    if config.get('polis'):
+        constants.set_polismainnet()
+    if config.get('btc'):
+        constants.set_btcmainnet()
+    elif config.get('bch'):
+        constants.set_bitcoincashmainnet()
+    elif config.get('dash'):
+        constants.set_dashmainnet()
+    elif config.get('ltc'):
+        constants.set_ltcmainnet()
+    elif config.get('xmcc'):
+        constants.set_xmccmainnet()
+    elif config.get('gbx'):
+        constants.set_gbxmainnet()
+    elif config.get('colx'):
+        constants.set_colxmainnet()
 
     # run non-RPC commands separately
     if cmdname in ['create', 'restore']:

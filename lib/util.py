@@ -34,7 +34,6 @@ import stat
 
 from .i18n import _
 
-
 import urllib.request, urllib.parse, urllib.error
 import queue
 
@@ -340,7 +339,7 @@ def android_check_data_dir():
     old_electrum_dir = ext_dir + '/electrum'
     if not os.path.exists(data_dir) and os.path.exists(old_electrum_dir):
         import shutil
-        new_headers_path = android_headers_dir() + '/blockchain_headers'
+        new_headers_path = android_headers_dir()  + '/blockchain_headers'
         old_headers_path = old_electrum_dir + '/blockchain_headers'
         if not os.path.exists(new_headers_path) and os.path.exists(old_headers_path):
             print_error("Moving headers file to", new_headers_path)
@@ -351,7 +350,7 @@ def android_check_data_dir():
 
 
 def get_headers_dir(config):
-    return android_headers_dir() if 'ANDROID_DATA' in os.environ else config.path
+        return android_headers_dir() if 'ANDROID_DATA' in os.environ else config.path
 
 
 def assert_datadir_available(config_path):

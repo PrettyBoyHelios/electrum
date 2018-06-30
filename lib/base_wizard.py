@@ -159,7 +159,6 @@ class BaseWizard(object):
         self.coin_ticker = choice
         if choice == 'polis':
             base_coin = 'polis'
-
         if choice == 'btc':
             base_coin = 'btc'
         if choice == 'bch':

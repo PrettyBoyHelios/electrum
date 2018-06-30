@@ -26,7 +26,8 @@
 import hashlib
 import hmac
 import x11_hash
-
+import quark_hash
+import neoscrypt
 
 from .util import bfh, bh2u, BitcoinException, print_error, assert_bytes, to_bytes, inv_dict
 from . import version
@@ -70,6 +71,12 @@ def int_to_hex(i: int, length: int=1) -> str:
 
 def PoWHash(x):
     return x11_hash.getPoWHash(to_bytes(x))
+
+def QuarkHash(x):
+    return quark_hash.getPoWHash(to_bytes(x))
+
+def NeoHash(x):
+    return neoscrypt.getPoWHash(to_bytes(x))
 
 def script_num_to_hex(i: int) -> str:
     """See CScriptNum in Bitcoin Core.

@@ -105,18 +105,31 @@ class SimpleConfig(PrintError):
         path = self.get('electrum_path')
         if path is None:
             path = self.user_dir()
-
         make_dir(path, allow_symlink=False)
-        if self.get('testnet'):
-            path = os.path.join(path, 'testnet')
+        if self.get('polis'):
+            path = os.path.join(path, 'polis')
             make_dir(path, allow_symlink=False)
-        elif self.get('regtest'):
-            path = os.path.join(path, 'regtest')
+        elif self.get('btc'):
+            path = os.path.join(path, 'btc')
             make_dir(path, allow_symlink=False)
-        elif self.get('simnet'):
-            path = os.path.join(path, 'simnet')
+        elif self.get('bch'):
+            path = os.path.join(path, 'bch')
             make_dir(path, allow_symlink=False)
-
+        elif self.get('dash'):
+            path = os.path.join(path, 'dash')
+            make_dir(path, allow_symlink=False)
+        elif self.get('colx'):
+            path = os.path.join(path, 'colx')
+            make_dir(path, allow_symlink=False)
+        elif self.get('gbx'):
+            path = os.path.join(path, 'gbx')
+            make_dir(path, allow_symlink=False)
+        elif self.get('xmcc'):
+            path = os.path.join(path, 'xmcc')
+            make_dir(path, allow_symlink=False)
+        elif self.get('ltc'):
+            path = os.path.join(path, 'ltc')
+            make_dir(path, allow_symlink=False)
         self.print_error("electrum directory", path)
         return path
 

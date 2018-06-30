@@ -69,6 +69,8 @@ class PolisMainnet:
     WIF_PREFIX = 0x3C
     ADDRTYPE_P2PKH = 0x37
     ADDRTYPE_P2SH = 0x38
+    POW_TARGET_SPACING = 2
+    POW_DGW3_HEIGHT = 551
     GENESIS = "000009701eb781a8113b1af1d814e2f060f6408a2c990db291bc5108a1345c1e"
     DEFAULT_PORTS = {'s': '50002'}
     DEFAULT_SERVERS = read_json('servers-polis.json', {})
@@ -110,33 +112,6 @@ class LitecoinMainnet:
     BIP44_COIN_TYPE = 2
 
 
-class BitcoinTestnet:
-
-    TESTNET = True
-    WIF_PREFIX = 0xef
-    ADDRTYPE_P2PKH = 111
-    ADDRTYPE_P2SH = 196
-    SEGWIT_HRP = "tb"
-    GENESIS = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
-    DEFAULT_PORTS = {'t': '51001', 's': '51002'}
-    DEFAULT_SERVERS = read_json('servers_testnet.json', {})
-    CHECKPOINTS = read_json('checkpoints_testnet.json', [])
-
-    XPRV_HEADERS = {
-        'standard':    0x04358394,  # tprv
-        'p2wpkh-p2sh': 0x044a4e28,  # uprv
-        'p2wsh-p2sh':  0x024285b5,  # Uprv
-        'p2wpkh':      0x045f18bc,  # vprv
-        'p2wsh':       0x02575048,  # Vprv
-    }
-    XPUB_HEADERS = {
-        'standard':    0x043587cf,  # tpub
-        'p2wpkh-p2sh': 0x044a5262,  # upub
-        'p2wsh-p2sh':  0x024289ef,  # Upub
-        'p2wpkh':      0x045f1cf6,  # vpub
-        'p2wsh':       0x02575483,  # Vpub
-    }
-    BIP44_COIN_TYPE = 1
 
 class DashMainnet:
 
@@ -144,6 +119,8 @@ class DashMainnet:
     WIF_PREFIX = 204
     ADDRTYPE_P2PKH = 76
     ADDRTYPE_P2SH = 16
+    POW_TARGET_SPACING = 2.5 * 60
+    POW_DGW3_HEIGHT = 68589
     GENESIS = "00000ffd590b1485b3caadc19b22e6379c733355108f107a430458cdf3407ab6"
     DEFAULT_PORTS = {'t': '50001', 's': '50002'}
     DEFAULT_SERVERS = read_json('servers-dash.json', {})
@@ -179,20 +156,6 @@ class BitcoinCashMainnet:
     }
     BIP44_COIN_TYPE = 0
 
-class BitcoinRegtest(BitcoinTestnet):
-
-    SEGWIT_HRP = "bcrt"
-    GENESIS = "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"
-    DEFAULT_SERVERS = read_json('servers_regtest.json', {})
-    CHECKPOINTS = []
-
-
-class BitcoinSimnet(BitcoinTestnet):
-
-    SEGWIT_HRP = "sb"
-    GENESIS = "683e86bd5c6d110d91b94b97137ba6bfe02dbbdb8e3dff722a669b5d69d77af6"
-    DEFAULT_SERVERS = read_json('servers_regtest.json', {})
-    CHECKPOINTS = []
 net = PolisMainnet
 
 def set_btcmainnet():
@@ -203,7 +166,7 @@ def set_polismainnet():
     global net
     net = PolisMainnet
 
-def set_testnet():
+def set_bitcoincashmainnet():
     global net
     net = BitcoinCashMainnet
 
