@@ -158,22 +158,29 @@ class BaseWizard(object):
         global base_coin
         self.coin_ticker = choice
         if choice == 'polis':
-            base_coin = 'polis'
+            self.update_selected_coin('polis')
         if choice == 'btc':
-            base_coin = 'btc'
+            self.update_selected_coin('btc')
         if choice == 'bch':
-            base_coin = 'bch'
+            self.update_selected_coin('bch')
         if choice == 'dash':
-            base_coin = 'dash'
+            self.update_selected_coin('dash')
         if choice == 'colx':
-            base_coin = 'colx'
+            self.update_selected_coin('colx')
         if choice == 'xmcc':
-            base_coin = 'xmcc'
+            self.update_selected_coin('xmcc')
         if choice == 'gbx':
-            base_coin = 'gbx'
+            self.update_selected_coin('gbx')
         if choice == 'ltc':
-            base_coin = 'ltc'
+            self.update_selected_coin('ltc')
         self.wallet_type()
+
+    def update_selected_coin(self, symbol):
+        # Updates path and selected coin
+        global base_coin
+        base_coin = symbol
+        self.storage.path.join(symbol)
+        # Update server connections
 
     def choose_multisig(self):
         def on_multisig(m, n):
