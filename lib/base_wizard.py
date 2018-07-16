@@ -179,7 +179,11 @@ class BaseWizard(object):
         # Updates path and selected coin
         global base_coin
         base_coin = symbol
-        self.storage.path.join(symbol)
+        head, tail = os.path.split(self.storage.path)
+        print("head & tail", head, "\n", tail)
+        new_path = os.path.join(head, symbol, tail)
+        print(self.storage.path)
+        #self.storage.path = new_path
         # Update server connections
 
     def choose_multisig(self):
