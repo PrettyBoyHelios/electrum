@@ -262,6 +262,7 @@ class WalletStorage(PrintError):
             s = s.decode('utf8')
 
         temp_path = "%s.tmp.%s" % (self.path, os.getpid())
+        print("TEmp path", temp_path)
         with open(temp_path, "w", encoding='utf-8') as f:
             f.write(s)
             f.flush()

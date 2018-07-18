@@ -179,12 +179,21 @@ class BaseWizard(object):
         # Updates path and selected coin
         global base_coin
         base_coin = symbol
+
+        #Gets base directory and file name
         head, tail = os.path.split(self.storage.path)
-        print("head & tail", head, "\n", tail)
-        new_path = os.path.join(head, symbol, tail)
-        print(self.storage.path)
-        #self.storage.path = new_path
-        # Update server connections
+        self.storage.path = os.path.join(head, symbol)
+
+        #print("Directory to create: ", self.storage.path)
+        # Creates path if it does not exist
+        if not os.path.exists(self.storage.path):
+            os.makedirs(self.storage.path)
+
+        # Joins path for file json data
+        self.storage.path = os.path.join(self.storage.path, tail)
+        # print("Final file location: ", self.storage.path)
+
+        #TODO Update server data and conections
 
     def choose_multisig(self):
         def on_multisig(m, n):
