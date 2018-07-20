@@ -182,6 +182,7 @@ class BaseWizard(object):
         global base_coin
         base_coin = symbol
 
+        # TODO fix btc/polis/ issue
         #Gets base directory and file name
         head, tail = os.path.split(self.storage.path)
         self.storage.path = os.path.join(head, symbol)
