@@ -34,7 +34,7 @@ from .keystore import bip44_derivation, purpose48_derivation
 from .wallet import Imported_Wallet, Standard_Wallet, Multisig_Wallet, wallet_types, Wallet, coin_tickers
 from .storage import STO_EV_USER_PW, STO_EV_XPUB_PW, get_derivation_used_for_hw_device_encryption
 from .i18n import _
-from .util import UserCancelled, InvalidPassword
+from .util import UserCancelled, InvalidPassword, get_path_folders
 from .constants import CrypoData
 
 
@@ -182,7 +182,12 @@ class BaseWizard(object):
         global base_coin
         base_coin = symbol
 
-        # TODO fix btc/polis/ issue
+        splt_path = get_path_folders(self.storage.path)
+        for crypto in self.crypto_data.supported_cryptos:
+            splt_path.remove(crypto) if crypto in splt_path else None
+
+
+
         #Gets base directory and file name
         head, tail = os.path.split(self.storage.path)
         self.storage.path = os.path.join(head, symbol)

@@ -895,3 +895,25 @@ def make_dir(path, allow_symlink=True):
             raise Exception('Dangling link: ' + path)
         os.mkdir(path)
         os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+def get_path_folders(path):
+    folders = []
+    while 1:
+        #print(path, 'folders: ', folders)
+        path, folder = os.path.split(path)
+
+        if folder != "":
+            folders.append(folder)
+        else:
+            if path != "":
+                folders.append(path)
+
+            break
+    #print("folders:", folders, len(folders))
+    res = []
+    for i in range(len(folders)-1, -1, -1):
+        #print(i, folders[i])
+        res.append(folders[i])
+
+    #print("res", res)
+    return res
