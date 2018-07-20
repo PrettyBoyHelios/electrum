@@ -35,6 +35,7 @@ from .wallet import Imported_Wallet, Standard_Wallet, Multisig_Wallet, wallet_ty
 from .storage import STO_EV_USER_PW, STO_EV_XPUB_PW, get_derivation_used_for_hw_device_encryption
 from .i18n import _
 from .util import UserCancelled, InvalidPassword
+from .constants import CrypoData
 
 
 # hardware device setup purpose
@@ -62,6 +63,7 @@ class BaseWizard(object):
         self.keystores = []
         self.is_kivy = config.get('gui') == 'kivy'
         self.seed_type = None
+        self.crypto_data = CrypoData() # Loads supported cryptocurrencies data
 
     def set_icon(self, icon):
         pass
@@ -183,7 +185,7 @@ class BaseWizard(object):
         #Gets base directory and file name
         head, tail = os.path.split(self.storage.path)
         self.storage.path = os.path.join(head, symbol)
-
+        print(self.crypto_data.supported_cryptos)
         #print("Directory to create: ", self.storage.path)
         # Creates path if it does not exist
         if not os.path.exists(self.storage.path):

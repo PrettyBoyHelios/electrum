@@ -63,6 +63,12 @@ class BitcoinMainnet:
     }
     BIP44_COIN_TYPE = 0
 
+class CrypoData:
+    def __init__(self):
+        self.supported_cryptos = ['btc', 'bch', 'polis', 'dash', 'colx', 'xmcc', 'gbx', 'ltc']
+
+
+
 class PolisMainnet:
 
     TESTNET = False

@@ -62,8 +62,8 @@ class CosignWidget(QWidget):
         qp.setRenderHint(QPainter.Antialiasing)
         qp.setBrush(Qt.gray)
         for i in range(self.n):
-            alpha = int(16* 360 * i/self.n)
-            alpha2 = int(16* 360 * 1/self.n)
+            alpha = int(16 * 360 * i/self.n)
+            alpha2 = int(16 * 360 * 1/self.n)
             qp.setBrush(Qt.green if i<self.m else Qt.gray)
             qp.drawPie(self.R, alpha, alpha2)
         qp.end()
